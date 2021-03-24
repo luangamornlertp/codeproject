@@ -243,7 +243,11 @@ giniinfo
 accuracy_giniinfo <- sum(diag(giniinfo)) / sum(giniinfo)
 print(paste('Accuracy for test', accuracy_giniinfo))
 
-
+plot(ROCclass, col = 1, legend = FALSE, YIndex = FALSE)
+lines(ROCinfo$TPR ~ ROCinfo$FPR, col = 2, lwd = 2)
+legend("bottomright", col = c(1,2),
+       c("Gini", "Information gain"), 
+       lwd = 2, cex = .8)
 
 #Bagging
 
@@ -400,14 +404,16 @@ boostpred <- predict(boostclass, as.matrix(testwin_x[, -2]))
 boostpredround <- round(boostpred)
 boost_nl <- table(boostpredround, testwin_y)
 boost_nl
+accuracy_boost <- sum(diag(boost_nl))/sum(boost_nl)
+print(paste('Accuracy for test', accuracy_boost))
+
+boostroc <- rocit(boostpred, nlplayoff1$LgWin)
+plot(boostroc)
+ciAUC(boostroc)
 
 #IAI OCT
 
 library(iai)
-
-alplayoff1
-
-
 
 grid <- iai::grid_search(
   iai::optimal_tree_classifier(
@@ -494,8 +500,88 @@ grid2 <- iai::grid_search(
     random_seed = 1,
     criterion = "gini",
   ),
-  max_depth = 10,
+  max_depth = 5,
 
 )
+
+iai::fit(grid2, play_x, play_y)
+iai::get_learner(grid2)
+
+iaginipred <- iai::predict(grid2, testwin_x)
+
+playoffprobgini <- iai::predict_proba(grid2, testwin_x)
+iaiginiroc <- rocit(playoffprobgini[, 2], nlplayoff1$LgWin)
+plot(iaiginiroc)
+ciAUC(iaiginiroc)
+
+giniiai <- table(iaginipred, testwin_y)
+giniiai
+sum(diag(giniiai))/sum(giniiai)
+
+plot(iairoc, col = 1, legend = FALSE, YIndex = FALSE)
+lines(iaiginiroc$TPR ~ iaiginiroc$FPR, col = 2, lwd = 2)
+legend("bottomright", col = c(1,2),
+       c("OCT Misclassification", "OCT Gini"), 
+       lwd = 2, cex = .8)
+
+
+
+grid3 <- iai::grid_search(
+  iai::optimal_tree_classifier(
+    random_seed = 1,
+    max_depth = 2,
+    hyperplane_config = list(sparsity = "all"),
+  ),
+)
+iai::fit(grid3, play_x, play_y)
+iai::get_learner(grid3)
+
+iahyp <- iai::predict(grid3, testwin_x)
+
+playoffprobhyp <- iai::predict_proba(grid3, testwin_x)
+iaihyproc <- rocit(playoffprobhyp[, 2], nlplayoff1$LgWin)
+plot(iaihyproc)
+ciAUC(iaihyproc)
+
+giniiai <- table(iaginipred, testwin_y)
+giniiai
+sum(diag(giniiai))/sum(giniiai)
+
+
+
+plot(iairoc, col = 1, legend = FALSE, YIndex = FALSE)
+lines(iaiginiroc$TPR ~ iaiginiroc$FPR, col = 2, lwd = 2)
+lines(rociabag$TPR ~ rociabag$FPR, col = 3, lwd = 2)
+lines(iaihyproc$TPR ~ iaihyproc$FPR, col = 4, lwd = 2)
+legend("bottomright", col = c(1,2,3,4),
+       c("OCT Misclassification", "OCT Gini", "Bagged OCT", "OCT Hyperplane"), 
+       lwd = 2, cex = .8)
+
+
+
+
+
+detach("package:iai", unload = TRUE)
+
+plot(ROCclass, col = 1, legend = FALSE, YIndex = FALSE)
+lines(ROCprune$TPR ~ ROCprune$FPR, col = 2, lwd = 2)
+lines(ROCinfo$TPR ~ ROCinfo$FPR, col = 3, lwd = 2)
+lines(ROCbag$TPR ~ ROCbag$FPR, col = 4, lwd = 2)
+lines(ROCrbag$TPR ~ ROCrbag$FPR, col = 5, lwd = 2)
+lines(ROCrf$TPR ~ ROCrf$FPR, col = 6, lwd = 2)
+lines(rocada$TPR ~ rocada$FPR, col = 7, lwd = 2)
+lines(rocxg$TPR ~ rocxg$FPR, col = 8, lwd = 2)
+lines(boostroc$TPR ~ boostroc$FPR, col = "darkgreen", lwd = 2)
+lines(iairoc$TPR ~ iairoc$FPR, col = "darkblue", lwd = 2)
+lines(iaiginiroc$TPR ~ iaiginiroc$FPR, col = "blueviolet", lwd = 2)
+lines(rociabag$TPR ~ rociabag$FPR, col = "coral", lwd = 2)
+lines(iaihyproc$TPR ~ iaihyproc$FPR, col = "bisque", lwd = 2)
+legend("bottomright", 
+       col = c(1,2,3,4,5,6,7,8,
+              "darkgreen","darkblue","blueviolet","coral","bisque"),
+       c("CART","Prune","Information Gain","Bagging","RF Bagging",
+         "Random Forest","AdaBoost","xgBoost - Train", "xgBoost",
+         "OCT", "OCT Gini", "Bagged OCT", "OCT Hyperplane"), 
+       lwd = 2, cex = .5)
 
 
