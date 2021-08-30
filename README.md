@@ -8,6 +8,8 @@ https://github.com/luangamornlertp/codeproject/
 
 The codes have been split into two similar to that in chapter 6 of this report, CLASSIFICATION and REGRESSION which makes each dataset easy to follow.
 
+The PDF format of my final draft is in this depository.
+
 Furthermore, one can find the TeX file for the report in the following repository:
 
 https://github.com/luangamornlertp/Project
